@@ -43,7 +43,7 @@ def crawl():
     soup = BeautifulSoup(html, "html.parser")
 
     posts = []
-    rows = soup.select("tbody tr")
+    rows = soup.select("tr")
 
     print("총 행 개수:", len(rows))
 
