@@ -5,6 +5,11 @@ from bs4 import BeautifulSoup
 import os
 from playwright.sync_api import sync_playwright
 
+print("🔥 프로그램 시작")
+
+# =========================
+# 환경 변수
+# =========================
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
@@ -13,6 +18,9 @@ URL = "https://www.fmkorea.com/stock"
 TARGETS = set(["디깅온유","방화신기","노라무","박현빈샤방샤방"])
 SEEN_FILE = "seen.json"
 
+# =========================
+# 중복 관리
+# =========================
 def load_seen():
     try:
         with open(SEEN_FILE, "r") as f:
@@ -26,11 +34,23 @@ def save_seen(seen):
 
 seen_posts = load_seen()
 
+# =========================
+# 텔레그램 전송
+# =========================
 def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+    try:
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        res = requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+        print("텔레그램 상태:", res.status_code)
+    except Exception as e:
+        print("텔레그램 오류:", e)
 
+# =========================
+# 크롤링
+# =========================
 def crawl():
+    print("🌐 크롤링 시작")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -49,6 +69,10 @@ def crawl():
 
     for r in rows:
         try:
+            # 공지/광고 제거
+            if "notice" in r.get("class", []):
+                continue
+
             author = r.select_one(".author")
             title = r.select_one(".title a")
 
@@ -70,14 +94,20 @@ def crawl():
                 "link": link
             })
 
-        except:
+        except Exception as e:
+            print("파싱 에러:", e)
             continue
 
     return posts
 
+# =========================
+# 메인
+# =========================
 def main():
     print("🚀 봇 시작됨")
-    send_telegram("봇 실행됨")
+
+    # 실행 확인용
+    send_telegram("🤖 봇 실행됨")
 
     while True:
         try:
@@ -101,8 +131,11 @@ def main():
             time.sleep(30)
 
         except Exception as e:
-            print("에러:", e)
+            print("메인 루프 에러:", e)
             time.sleep(60)
 
+# =========================
+# 실행
+# =========================
 if __name__ == "__main__":
     main()
